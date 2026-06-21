@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesin Gombal — buat crush kamu baper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF8EC;
+    --paper:#FFFDF8;
+    --ink:#2E1A2F;
+    --pink:#FF6FA0;
+    --yellow:#FFC847;
+    --mint:#5FD0C4;
+    --coral:#FF4F64;
+    --lilac:#C9A6FF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Plus Jakarta Sans', sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  .ambient{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0;}
+  .ambient span{
+    position:absolute; font-size:22px; opacity:.35;
+    animation:floatY 6s ease-in-out infinite;
+  }
+  @media (max-width:600px){ .ambient span{ display:none; } .ambient span.keep{ display:inline; } }
+  @keyframes floatY{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-16px) rotate(8deg);}}
+
+  .wrap{
+    position:relative; z-index:1;
+    max-width:480px; margin:0 auto;
+    padding:36px 20px 48px;
+  }
+
+  header{ text-align:center; margin-bottom:22px; }
+  .eyebrow{
+    font-family:'Space Mono', monospace; font-size:12px; letter-spacing:.12em;
+    color:var(--coral); text-transform:uppercase; margin:0 0 6px;
+  }
+  h1{
+    font-family:'Baloo 2', sans-serif; font-weight:800;
+    font-size:clamp(32px,8vw,44px); margin:0; line-height:1.05;
+  }
+  h1 span{ color:var(--pink); }
+  .tagline{
+    font-family:'Caveat', cursive; font-weight:700;
+    font-size:clamp(20px,5vw,26px); color:var(--ink);
+    transform:rotate(-2deg); margin:8px 0 0; opacity:.85;
+  }
+
+  .chips{
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    margin-bottom:26px;
+  }
+  .chip{
+    font-family:'Plus Jakarta Sans', sans-serif; font-weight:600; font-size:13.5px;
+    padding:8px 14px; border-radius:999px; border:2px solid var(--ink);
+    background:var(--paper); color:var(--ink); cursor:pointer;
+    transition:transform .15s ease, background .15s ease, color .15s ease;
+  }
+  .chip:hover{ transform:translateY(-2px); }
+  .chip.active{ background:var(--coral); color:#fff; border-color:var(--coral); }
+  .chip:focus-visible{ outline:3px solid var(--mint); outline-offset:2px; }
+
+  /* === MESIN GOMBAL (signature) === */
+  .machine{ display:flex; flex-direction:column; align-items:center; }
+
+  .dome{
+    width:160px; height:120px;
+    border-radius:50% 50% 14px 14px / 60% 60% 14px 14px;
+    background:linear-gradient(160deg, rgba(255,255,255,.85), rgba(193,232,228,.55));
+    border:3px solid var(--ink);
+    position:relative; overflow:hidden;
+    box-shadow: inset 0 -10px 20px rgba(46,26,47,.08);
+  }
+  .gumball{
+    position:absolute; width:20px; height:20px; border-radius:50%;
+    border:2px solid rgba(46,26,47,.25);
+    animation:jostle 2.6s ease-in-out infinite;
+  }
+  @keyframes jostle{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-5px) rotate(4deg);}}
+  @media (prefers-reduced-motion: reduce){
+    .gumball{ animation:none; }
+    .ambient span{ animation:none; }
+  }
+
+  .machine-body{
+    width:188px; background:var(--ink); border-radius:14px;
+    margin-top:-10px; padding:14px 14px 0; position:relative; z-index:2;
+    box-shadow:0 8px 0 rgba(46,26,47,.15);
+  }
+  .gauge-area{ text-align:center; }
+  .gauge{ width:120px; height:64px; margin:0 auto; position:relative; }
+  .gauge-arc{
+    width:120px; height:60px; border-radius:120px 120px 0 0;
+    background:conic-gradient(from 270deg at 50% 100%, var(--mint) 0deg, var(--yellow) 90deg, var(--coral) 180deg, transparent 180deg);
+    position:absolute; top:0; left:0;
+  }
+  .gauge-mask{
+    width:88px; height:44px; border-radius:88px 88px 0 0;
+    background:var(--ink); position:absolute; top:16px; left:16px;
+  }
+  .gauge-needle{
+    width:3px; height:46px; background:var(--cream); border-radius:2px;
+    position:absolute; bottom:0; left:50%; transform-origin:bottom center;
+    transform:translateX(-50%) rotate(0deg);
+    transition:transform .6s cubic-bezier(.34,1.56,.64,1);
+  }
+  .gauge-pin{
+    width:10px; height:10px; border-radius:50%; background:var(--cream);
+    position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+  }
+  .gauge-label{
+    font-family:'Space Mono', monospace; color:var(--cream); font-size:11px;
+    letter-spacing:.06em; margin:2px 0 0; opacity:.8;
+  }
+  .gauge-value{
+    font-family:'Space Mono', monospace; color:var(--yellow); font-size:18px;
+    margin:0 0 10px;
+  }
+  .slot{
+    width:80px; height:10px; background:var(--cream); border-radius:6px;
+    margin:8px auto 0; opacity:.9;
+  }
+
+  .ticket-paper{
+    width:220px; min-height:90px; background:var(--paper);
+    border-radius:10px; margin-top:-6px; position:relative; z-index:1;
+    padding:18px 16px 14px; text-align:center;
+    box-shadow:0 6px 0 rgba(46,26,47,.08), 0 12px 24px rgba(46,26,47,.14);
+    transform:rotate(-1deg);
+  }
+  .ticket-paper::before,.ticket-paper::after{
+    content:""; position:absolute; width:16px; height:16px; background:var(--cream);
+    border-radius:50%; top:50%; transform:translateY(-50%);
+  }
+  .ticket-paper::before{ left:-8px; }
+  .ticket-paper::after{ right:-8px; }
+  .ticket-meta{
+    font-family:'Space Mono', monospace; font-size:10.5px; color:var(--coral);
+    letter-spacing:.08em; margin:0 0 8px;
+  }
+  .ticket-line{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:16px;
+    line-height:1.35; margin:0;
+  }
+  .ticket-line.cycling{ opacity:.45; }
+  .ticket-line.pop{ animation:popIn .42s ease; }
+  @keyframes popIn{0%{transform:scale(.9) rotate(-1deg);opacity:.3;}60%{transform:scale(1.04) rotate(.5deg);}100%{transform:scale(1) rotate(0deg);opacity:1;}}
+
+  .pull-btn{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:17px;
+    margin-top:18px; padding:14px 34px; border-radius:999px; border:3px solid var(--ink);
+    background:var(--coral); color:#fff; cursor:pointer;
+    box-shadow:0 5px 0 var(--ink);
+    transition:transform .12s ease, box-shadow .12s ease;
+    position:relative;
+  }
+  .pull-btn:hover{ background:#ff3b54; }
+  .pull-btn:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--ink); }
+  .pull-btn:focus-visible{ outline:3px solid var(--mint); outline-offset:3px; }
+  .pull-btn:disabled{ opacity:.7; cursor:default; }
+
+  .burst{
+    position:absolute; left:50%; top:0; font-size:16px; pointer-events:none;
+    animation:heartBurst .8s ease forwards;
+  }
+  @keyframes heartBurst{
+    0%{ transform:translate(0,0) scale(.6); opacity:1; }
+    100%{ transform:translate(var(--dx,0px), -64px) scale(1.2); opacity:0; }
+  }
+
+  .actions{
+    display:flex; gap:10px; justify-content:center; margin-top:22px;
+  }
+  .action-btn{
+    font-family:'Plus Jakarta Sans', sans-serif; font-weight:600; font-size:13.5px;
+    padding:9px 16px; border-radius:999px; border:2px solid var(--ink);
+    background:var(--paper); color:var(--ink); cursor:pointer;
+    transition:transform .15s ease;
+  }
+  .action-btn:hover{ transform:translateY(-2px); }
+  .action-btn:focus-visible{ outline:3px solid var(--mint); outline-offset:2px; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translate(-50%,12px);
+    background:var(--ink); color:var(--cream); font-size:13.5px; font-weight:600;
+    padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease; z-index:5;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  .history{ margin-top:26px; text-align:center; }
+  .history-label{
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.08em;
+    color:var(--ink); opacity:.55; margin:0 0 8px; text-transform:uppercase;
+  }
+  .history-chips{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .history-chip{
+    font-size:12px; background:var(--paper); border:1.5px dashed var(--ink);
+    border-radius:10px; padding:6px 10px; max-width:200px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85;
+  }
+
+  footer{
+    text-align:center; margin-top:34px; font-family:'Caveat', cursive;
+    font-size:18px; color:var(--ink); opacity:.7;
+  }
+
+  .sr-only{
+    position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <span class="keep" style="top:8%; left:6%; animation-delay:0s;">💌</span>
+  <span style="top:14%; left:84%; animation-delay:.6s;">✨</span>
+  <span style="top:40%; left:90%; animation-delay:1.2s;">💗</span>
+  <span style="top:62%; left:4%; animation-delay:.3s;">🍬</span>
+  <span class="keep" style="top:80%; left:88%; animation-delay:.9s;">✨</span>
+  <span style="top:88%; left:10%; animation-delay:1.5s;">💌</span>
+</div>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">100% receh, 0% php</p>
+    <h1>MESIN<span> GOMBAL</span></h1>
+    <p class="tagline">tarik satu, langsung baper~</p>
+  </header>
+
+  <div class="chips" role="group" aria-label="Pilih kategori gombal">
+    <button class="chip active" data-cat="semua">Semua 🎲</button>
+    <button class="chip" data-cat="receh">Receh 😂</button>
+    <button class="chip" data-cat="romantis">Romantis 💗</button>
+    <button class="chip" data-cat="anakit">Anak IT 🤓</button>
+    <button class="chip" data-cat="makanan">Pecinta Makanan 🍫</button>
+  </div>
+
+  <div class="machine">
+    <div class="dome" aria-hidden="true">
+      <div class="gumball" style="background:var(--pink); top:14px; left:18px; animation-delay:0s;"></div>
+      <div class="gumball" style="background:var(--yellow); top:8px; left:50px; animation-delay:.3s;"></div>
+      <div class="gumball" style="background:var(--mint); top:20px; left:84px; animation-delay:.6s;"></div>
+      <div class="gumball" style="background:var(--lilac); top:10px; left:118px; animation-delay:.9s;"></div>
+      <div class="gumball" style="background:var(--coral); top:36px; left:34px; animation-delay:.2s;"></div>
+      <div class="gumball" style="background:var(--mint); top:40px; left:68px; animation-delay:.5s;"></div>
+      <div class="gumball" style="background:var(--yellow); top:34px; left:100px; animation-delay:.8s;"></div>
+      <div class="gumball" style="background:var(--pink); top:56px; left:54px; animation-delay:.4s;"></div>
+      <div class="gumball" style="background:var(--lilac); top:58px; left:86px; animation-delay:.7s;"></div>
+    </div>
+
+    <div class="machine-body">
+      <div class="gauge-area">
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-arc"></div>
+          <div class="gauge-mask"></div>
+          <div class="gauge-needle" id="needle"></div>
+          <div class="gauge-pin"></div>
+        </div>
+        <p class="gauge-value" id="gaugeValue">0%</p>
+        <p class="gauge-label">tingkat kegombalan</p>
+      </div>
+      <div class="slot" aria-hidden="true"></div>
+    </div>
+
+    <div class="ticket-paper" aria-live="polite">
+      <p class="ticket-meta" id="ticketMeta">TIKET GOMBAL #000</p>
+      <p class="ticket-line" id="ticketLine">Pilih kategori, lalu tarik mesinnya buat dapetin gombal pertama kamu!</p>
+    </div>
+
+    <button class="pull-btn" id="pullBtn">PUTAR MESINNYA! 🎉</button>
+  </div>
+
+  <div class="actions">
+    <button class="action-btn" id="copyBtn">📋 Salin Gombal</button>
+    <button class="action-btn" id="shareBtn">📤 Bagikan</button>
+  </div>
+
+  <div class="history">
+    <p class="history-label">riwayat tarikan</p>
+    <div class="history-chips" id="historyChips"></div>
+  </div>
+
+  <footer>dibuat dengan sepenuh hati (dan receh) — semoga crush kamu baper 😳</footer>
+
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const DATA = {
+  receh: [
+    "Kamu tau gak bedanya kamu sama bintang? Bintang ada di langit, kamu malah nempel terus di hati aku.",
+    "Eh denger gak? ...itu suara hati aku yang teriak-teriak nama kamu dari tadi.",
+    "Kalau kamu jadi WiFi, aku pengen jadi password biar bisa connect sama kamu terus.",
+    "Kamu kayak baterai HP aku deh, tiap liat kamu mood aku langsung full charge.",
+    "Aku gak butuh kalkulator buat tau kalau kamu itu jawaban dari semua soal di hati aku.",
+    "Kamu kayak sinyal penuh, kemana-mana selalu aku cari biar gak ilang.",
+    "Hati-hati deket kompor ya, ngeri nanti kalah panas sama kamu.",
+    "Kamu tau kenapa langit biru? Soalnya dia niru warna favorit kamu biar berasa deket terus."
+  ],
+  romantis: [
+    "Boleh pinjem KTP kamu? Aku mau daftar jadi orang yang paling sayang sama kamu.",
+    "Kalau rindu itu jarak, kayaknya kita udah keliling dunia berkali-kali.",
+    "Aku gak jago bikin puisi, tapi kalau soal sayang ke kamu, aku jagonya.",
+    "Setiap chat kamu masuk, rasanya kayak ada kembang api kecil di dada aku.",
+    "Kalau senyum kamu itu lagu, aku rela nyetel ulang sepanjang hari.",
+    "Gak perlu peta buat nyariin kebahagiaan, soalnya kebahagiaan aku ada di deket kamu."
+  ],
+  anakit: [
+    "Kalau kamu bug, aku gak mau di-fix, aku malah pengen kamu jadi fitur tetap di hidup aku.",
+    "Kamu kayak rumus fisika, susah dimengerti tapi bikin aku belajar terus tanpa bosen.",
+    "Tau gak kenapa aku betah ngoding? Soalnya tiap nulis 'kamu' di hati, gak pernah error.",
+    "Kalau hati aku itu server, kamu udah jadi admin yang gak bisa aku logout.",
+    "Move on dari kamu itu kayak uninstall aplikasi favorit, susah dan gak rela."
+  ],
+  makanan: [
+    "Kamu kayak gula, manisnya kebangetan, bikin aku susah berhenti.",
+    "Kalau kamu nasi, aku pengen jadi lauk yang nemenin terus tiap hari.",
+    "Senyum kamu kayak kopi pagi, bikin semangat seharian penuh.",
+    "Tau bedanya kamu sama cokelat? Cokelat masih bisa aku tolak, kamu enggak."
+  ]
+};
+DATA.semua = [].concat(DATA.receh, DATA.romantis, DATA.anakit, DATA.makanan);
+
+const RANGE = { semua:[50,100], receh:[55,85], romantis:[80,100], anakit:[60,90], makanan:[50,80] };
+
+let currentCat = 'semua';
+let currentLine = '';
+let ticketCount = 0;
+let history = [];
+let cycleTimer = null;
+
+const ticketLine = document.getElementById('ticketLine');
+const ticketMeta = document.getElementById('ticketMeta');
+const needle = document.getElementById('needle');
+const gaugeValue = document.getElementById('gaugeValue');
+const pullBtn = document.getElementById('pullBtn');
+const historyChips = document.getElementById('historyChips');
+const toast = document.getElementById('toast');
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => { c.classList.remove('active'); c.setAttribute('aria-pressed','false'); });
+    chip.classList.add('active');
+    chip.setAttribute('aria-pressed','true');
+    currentCat = chip.dataset.cat;
+  });
+});
+
+function randomFrom(arr, avoid){
+  if(arr.length === 1) return arr[0];
+  let pick;
+  do { pick = arr[Math.floor(Math.random()*arr.length)]; } while(pick === avoid);
+  return pick;
+}
+
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+function spawnHearts(btn){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const icons = ['💗','✨','💌'];
+  for(let i=0;i<6;i++){
+    const span = document.createElement('span');
+    span.className = 'burst';
+    span.textContent = icons[Math.floor(Math.random()*icons.length)];
+    span.style.setProperty('--dx', (Math.random()*60-30) + 'px');
+    span.style.left = (45 + Math.random()*10) + '%';
+    btn.appendChild(span);
+    setTimeout(() => span.remove(), 850);
+  }
+}
+
+function updateGauge(percent){
+  const angle = (percent/100)*180 - 90;
+  needle.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+  gaugeValue.textContent = percent + '%';
+}
+
+function addHistory(line){
+  history.unshift(line);
+  history = history.slice(0,3);
+  historyChips.innerHTML = '';
+  history.forEach(l => {
+    const chip = document.createElement('span');
+    chip.className = 'history-chip';
+    chip.textContent = l;
+    historyChips.appendChild(chip);
+  });
+}
+
+pullBtn.addEventListener('click', () => {
+  const pool = DATA[currentCat];
+  pullBtn.disabled = true;
+  ticketLine.classList.add('cycling');
+  ticketLine.classList.remove('pop');
+
+  let ticks = 0;
+  const maxTicks = 9;
+  cycleTimer = setInterval(() => {
+    ticketLine.textContent = pool[Math.floor(Math.random()*pool.length)];
+    ticks++;
+    if(ticks >= maxTicks){
+      clearInterval(cycleTimer);
+      const finalLine = randomFrom(pool, currentLine);
+      currentLine = finalLine;
+      ticketCount++;
+      ticketLine.textContent = finalLine;
+      ticketLine.classList.remove('cycling');
+      ticketLine.classList.add('pop');
+      ticketMeta.textContent = 'TIKET GOMBAL #' + String(100 + ticketCount).padStart(3,'0');
+
+      const [min,max] = RANGE[currentCat];
+      const percent = Math.floor(min + Math.random()*(max-min));
+      updateGauge(percent);
+
+      spawnHearts(pullBtn);
+      addHistory(finalLine);
+      pullBtn.disabled = false;
+    }
+  }, 65);
+});
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  if(!currentLine){ showToast('Tarik mesinnya dulu, yuk!'); return; }
+  try{
+    await navigator.clipboard.writeText(currentLine);
+    showToast('Disalin! Siap dikirim ke crush kamu 😳');
+  }catch(e){
+    showToast('Gagal menyalin, coba lagi ya');
+  }
+});
+
+document.getElementById('shareBtn').addEventListener('click', async () => {
+  if(!currentLine){ showToast('Tarik mesinnya dulu, yuk!'); return; }
+  if(navigator.share){
+    try{ await navigator.share({ title:'Gombal buat kamu', text:currentLine }); }
+    catch(e){ /* dibatalkan pengguna, biarkan saja */ }
+  } else {
+    try{
+      await navigator.clipboard.writeText(currentLine);
+      showToast('Disalin! Tinggal paste ke chat crush kamu');
+    }catch(e){ showToast('Gagal membagikan'); }
+  }
+});
+</script>
+
+</body>
+</html>
